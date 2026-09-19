@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<title>Andengradspolynomier</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+
+body{
+font-family:Arial, sans-serif;
+margin:0;
+background:white;
+overflow:hidden;
+}
+
+.container{
+display:flex;
+height:100vh;
+}
+
+/* Kontrolpanel */
+
+.panel{
+width:260px;
+padding:20px;
+border-right:1px solid #ddd;
+background:#f7f7f7;
+}
+
+.panel h3{
+margin-top:20px;
+margin-bottom:8px;
+font-size:16px;
+}
+
+.panel button{
+width:100%;
+padding:8px;
+margin:4px 0;
+border:1px solid #ccc;
+background:white;
+cursor:pointer;
+transition:background 0.2s;
+}
+
+.panel button:hover{
+background:#e8eefc;
+}
+
+.panel button.active{
+background:#4a6cf7;
+color:white;
+border-color:#4a6cf7;
+}
+
+.panel button:disabled{
+opacity:0.35;
+cursor:default;
+}
+
+/* grafområde */
+
+.graphArea{
+flex:1;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:flex-start;
+padding-top:40px;
+}
+
+/* fælles bredde */
+
+.mathCard{
+width:650px;
+}
+
+/* grafboks */
+
+.chartWrapper{
+
+background:#fafafa;
+border:1px solid #ddd;
+border-radius:8px;
+
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+
+padding:14px;
+margin-bottom:16px;
+}
+
+/* formel inde i grafboksen */
+
+.formula{
+font-size:22px;
+text-align:center;
+margin-bottom:10px;
+}
+
+.chartWrapper canvas{
+width:100% !important;
+height:380px !important;
+}
+
+/* forklaring */
+
+.info{
+
+background:#fafafa;
+border:1px solid #ddd;
+border-radius:8px;
+
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+
+padding:14px 18px;
+
+font-size:15px;
+line-height:1.7;
+}
+
+.info div{
+margin:6px 0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="panel">
+
+<h2>Koefficienter</h2>
+
+<h3>a</h3>
+<button id="aPos" onclick="setA(1)">a > 0</button>
+<button id="aNeg" onclick="setA(-1)">a < 0</button>
+
+<h3>b</h3>
+<button id="bNeg" onclick="setB(-2)">b < 0</button>
+<button id="bZero" onclick="setB(0)">b = 0</button>
+<button id="bPos" onclick="setB(2)">b > 0</button>
+
+<h3>c</h3>
+<button id="cNeg" onclick="setCsign(-1)">c < 0</button>
+<button id="cZero" onclick="setCsign(0)">c = 0</button>
+<button id="cPos" onclick="setCsign(1)">c > 0</button>
+
+<h3>d</h3>
+<button id="dpos" onclick="setD('pos')">d > 0</button>
+<button id="dzero" onclick="setD('zero')">d = 0</button>
+<button id="dneg" onclick="setD('neg')">d < 0</button>
+
+</div>
+
+<div class="graphArea">
+
+<div class="mathCard">
+
+<div class="chartWrapper">
+
+<div class="formula">
+\( f(x)=ax^2+bx+c \)
+</div>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+<div class="info">
+<div id="line1"></div>
+<div id="line2"></div>
+<div id="line3"></div>
+<div id="line4"></div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let a=1
+let b=2
+let cSign=1
+let dType="pos"
+
+function setA(v){a=v;update()}
+function setB(v){b=v;update()}
+function setCsign(v){cSign=v;update()}
+function setD(v){dType=v;update()}
+
+function chooseC(){
+
+if(cSign==0) return 0
+
+let cPos={pos:0.5,zero:1,neg:2}
+let cNeg={pos:-0.5,zero:-1,neg:-2}
+
+if(cSign>0) return cPos[dType]
+else return cNeg[dType]
+
+}
+
+function generateData(a,b,c){
+
+let pts=[]
+
+for(let x=-10;x<=10;x+=0.1){
+pts.push({x:x,y:a*x*x+b*x+c})
+}
+
+return pts
+
+}
+
+function possibleD(){
+
+let possibleC=[-2,-1,-0.5,0,0.5,1,2]
+
+let canPos=false
+let canZero=false
+let canNeg=false
+
+for(let c of possibleC){
+
+if(cSign>0 && c<=0) continue
+if(cSign<0 && c>=0) continue
+if(cSign==0 && c!=0) continue
+
+let d=b*b-4*a*c
+
+if(d>0) canPos=true
+if(d==0) canZero=true
+if(d<0) canNeg=true
+
+}
+
+return {canPos,canZero,canNeg}
+
+}
+
+function updateDButtons(){
+
+let p=possibleD()
+
+document.getElementById("dpos").disabled=!p.canPos
+document.getElementById("dzero").disabled=!p.canZero
+document.getElementById("dneg").disabled=!p.canNeg
+
+if(dType=="pos" && !p.canPos){
+if(p.canZero) dType="zero"
+else dType="neg"
+}
+
+if(dType=="zero" && !p.canZero){
+if(p.canPos) dType="pos"
+else dType="neg"
+}
+
+if(dType=="neg" && !p.canNeg){
+if(p.canZero) dType="zero"
+else dType="pos"
+}
+
+}
+
+function highlightButtons(){
+
+document.querySelectorAll(".panel button").forEach(b=>b.classList.remove("active"))
+
+if(a>0) document.getElementById("aPos").classList.add("active")
+else document.getElementById("aNeg").classList.add("active")
+
+if(b==2) document.getElementById("bPos").classList.add("active")
+if(b==0) document.getElementById("bZero").classList.add("active")
+if(b==-2) document.getElementById("bNeg").classList.add("active")
+
+if(cSign>0) document.getElementById("cPos").classList.add("active")
+if(cSign==0) document.getElementById("cZero").classList.add("active")
+if(cSign<0) document.getElementById("cNeg").classList.add("active")
+
+if(dType=="pos") document.getElementById("dpos").classList.add("active")
+if(dType=="zero") document.getElementById("dzero").classList.add("active")
+if(dType=="neg") document.getElementById("dneg").classList.add("active")
+
+}
+
+function updateText(){
+
+if(dType=="neg")
+line1.innerHTML="\\(d<0\\): Ingen rødder, dvs. ingen skæring med x-aksen"
+
+if(dType=="zero")
+line1.innerHTML="\\(d=0\\): Én rod, dvs. en skæring med x-aksen"
+
+if(dType=="pos")
+line1.innerHTML="\\(d>0\\): To rødder, dvs. to skæringer med x-aksen"
+
+if(cSign<0)
+line2.innerHTML="\\(c<0\\): Parablen skærer y-aksen under x-aksen i \\((0,c)\\)"
+
+if(cSign==0)
+line2.innerHTML="\\(c=0\\): Parablen skærer y-aksen i \\((0,0)\\)"
+
+if(cSign>0)
+line2.innerHTML="\\(c>0\\): Parablen skærer y-aksen over x-aksen i \\((0,c)\\)"
+
+if(b<0)
+line3.innerHTML="\\(b<0\\): Tangenhældningen i \\((0,c)\\) er negativ"
+
+if(b==0)
+line3.innerHTML="\\(b=0\\): Tangenhældningen i \\((0,c)\\) er nul"
+
+if(b>0)
+line3.innerHTML="\\(b>0\\): Tangenhældningen i \\((0,c)\\) er positiv"
+
+if(a>0)
+line4.innerHTML="\\(a>0\\): Grenene vender opad"
+
+if(a<0)
+line4.innerHTML="\\(a<0\\): Grenene vender nedad"
+
+MathJax.typeset()
+
+}
+
+const axisPlugin={
+id:'axisPlugin',
+afterDraw(chart){
+
+const {ctx,chartArea:{left,right,top,bottom}}=chart
+const xAxis=chart.scales.x
+const yAxis=chart.scales.y
+
+ctx.save()
+ctx.lineWidth=2
+ctx.strokeStyle="black"
+
+let y0=yAxis.getPixelForValue(0)
+
+ctx.beginPath()
+ctx.moveTo(left,y0)
+ctx.lineTo(right,y0)
+ctx.stroke()
+
+ctx.beginPath()
+ctx.moveTo(right-10,y0-5)
+ctx.lineTo(right,y0)
+ctx.lineTo(right-10,y0+5)
+ctx.stroke()
+
+let x0=xAxis.getPixelForValue(0)
+
+ctx.beginPath()
+ctx.moveTo(x0,bottom)
+ctx.lineTo(x0,top)
+ctx.stroke()
+
+ctx.beginPath()
+ctx.moveTo(x0-5,top+10)
+ctx.lineTo(x0,top)
+ctx.lineTo(x0+5,top+10)
+ctx.stroke()
+
+ctx.restore()
+
+}
+}
+
+let chart=new Chart(
+document.getElementById("chart"),
+{
+type:"line",
+data:{
+datasets:[{
+data:[],
+borderColor:"black",
+borderWidth:1.5,
+pointRadius:0,
+parsing:false
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{display:false}},
+scales:{
+x:{type:'linear',min:-8,max:8,ticks:{display:false},grid:{display:false},border:{display:false}},
+y:{min:-4,max:4,ticks:{display:false},grid:{display:false},border:{display:false}}
+}
+},
+plugins:[axisPlugin]
+}
+)
+
+function update(){
+
+updateDButtons()
+
+let c=chooseC()
+
+chart.data.datasets[0].data=generateData(a,b,c)
+
+chart.update()
+
+highlightButtons()
+
+updateText()
+
+}
+
+update()
+
+</script>
+</body>
+</html>
